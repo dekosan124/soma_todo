@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>そうまくんと一緒に勝ち抜く ToDo 💛</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif;
+      background: #fffbea;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: linear-gradient(to right, #ffcc33, #ffb300);
+      padding: 16px;
+      text-align: center;
+      color: #333;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .container {
+      padding: 16px;
+    }
+    input, textarea, select {
+      width: 100%;
+      margin: 4px 0;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      padding: 8px 12px;
+      margin: 4px 2px;
+      border: none;
+      border-radius: 8px;
+      background: #ffb300;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button.delete {
+      background: #ff6666;
+    }
+    .todo {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 8px;
+      margin: 6px 0;
+    }
+    .done {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    そうまくんと一緒に勝ち抜く ToDo 💛
+    <div style="font-size:12px;">単体HTML / ローカル保存 / iPhone対応</div>
+  </header>
+
+  <div class="container">
+    <input id="title" placeholder="やること（例：グッズ予約、チケット申し込み）">
+    <textarea id="memo" placeholder="メモ（任意）"></textarea>
+    <select id="priority">
+      <option value="high">💛 高</option>
+      <option value="mid" selected>🍀 中</option>
+      <option value="low">低</option>
+    </select>
+    <button onclick="addTodo()">＋ 追加</button>
+
+    <div style="margin-top:12px;">
+      <input id="search" placeholder="🔎 検索（タイトル・メモ）" oninput="render()">
+      <label><input type="checkbox" id="showDone" checked onchange="render()"> 完了も表示</label>
+    </div>
+
+    <div id="list"></div>
+
+    <div style="margin-top:12px;">
+      <button onclick="exportData()">⬇ エクスポート</button>
+      <input type="file" id="importFile" onchange="importData()" />
+      <button class="delete" onclick="clearDone()">完了を一括削除</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "soma_todo_single_v1";
+    let todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    }
+
+    function addTodo() {
+      const title = document.getElementById("title").value.trim();
+      if (!title) return;
+      const memo = document.getElementById("memo").value.trim();
+      const priority = document.getElementById("priority").value;
+      todos.push({ id: Date.now(), title, memo, priority, done: false });
+      save();
+      document.getElementById("title").value = "";
+      document.getElementById("memo").value = "";
+      render();
+    }
+
+    function toggleDone(id) {
+      const t = todos.find(x => x.id === id);
+      t.done = !t.done;
+      save();
+      render();
+    }
+
+    function delTodo(id) {
+      todos = todos.filter(x => x.id !== id);
+      save();
+      render();
+    }
+
+    function render() {
+      const q = document.getElementById("search").value.toLowerCase();
+      const showDone = document.getElementById("showDone").checked;
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+      for (const t of todos) {
+        if (!showDone && t.done) continue;
+        if (q && !(t.title.toLowerCase().includes(q) || t.memo.toLowerCase().includes(q))) continue;
+        const div = document.createElement("div");
+        div.className = "todo" + (t.done ? " done" : "");
+        div.innerHTML = `<b>${t.title}</b><br>${t.memo || ""}<br>
+          <span>${t.priority === "high" ? "💛 高" : t.priority === "mid" ? "🍀 中" : "低"}</span><br>
+          <button onclick="toggleDone(${t.id})">${t.done ? "未完了に戻す" : "完了"}</button>
+          <button class="delete" onclick="delTodo(${t.id})">削除</button>`;
+        list.appendChild(div);
+      }
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(todos)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "soma_todo_data.json";
+      a.click();
+    }
+
+    function importData() {
+      const file = document.getElementById("importFile").files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          todos = JSON.parse(e.target.result);
+          save();
+          render();
+        } catch (err) {
+          alert("インポート失敗");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearDone() {
+      todos = todos.filter(t => !t.done);
+      save();
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>
